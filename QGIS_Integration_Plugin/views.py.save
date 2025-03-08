@@ -1,0 +1,95 @@
+import json
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from django.views import View
+from django.http import JsonResponse
+from django.core.files.storage import FileSystemStorage
+from dcim.models import Site, Location, Cable
+from extras.models import CustomField
+from .models import GeoJSONData
+
+class GeoJSONUploadView(View):
+    template_name = "qgis_integration_plugin/upload.html"
+
+    def get(self, request):
+        return render(request, self.template_name, {"file_uploaded":False})
+
+    def post(self, request):
+        if "geojson_file" not in request.FILES:
+            messages.error(request, "Nessun file selezionato.")
+            return redirect("plugins:qgis-integration:upload")
+
+        geojson_file = request.FILES["geojson_file"]
+        fs = FileSystemStorage(location="/tmp/")
+        filename = fs.save(geojson_file.name, geojson_file)
+        file_path = fs.path(filename)
+
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                geojson_data = json.load(f)
+
+            # Controllo che il file sia un GeoJSON valido
+            if "features" not in geojson_data:
+                messages.error(request, "File GeoJSON non valido.")
+                return redirect("plugins:qgis-integration:upload")
+
+            # Recuperiamo o creiamo il sito "Università di Urbino" se non esiste
+            site, _ = Site.objects.get_or_create(name="Università di Urbino", slug="uniurb")
+
+
+            for feature in geojson_data['features']:
+                props = feature['properties']
+                geometry = feature['geometry']
+
+                try:
+                    start_building, end_building = props['name'].split("-")
+                except ValueError:
+                    messages.error(request, f"Formato del nome errato: {props['name']}")
+                    continue
+
+                location_a, _ = Location.objects.get_or_create(name=start_building.strip(), site=site)
+                location_b, _ = Location.objects.get_or_create(name=end_building.strip(), site=site)
+
+                cable = Cable.objects.create(
+                    termination_a=location_a,
+                    termination_b=location_b,
+                    type="fiber-optic",
+                    length=props.get("pairs",0) * 100,
+                )
+
+                cable.custom_field_data["fiber_type"] = props.get("type", "Unknown")
+                cable.custom_field_data["fiber_pairs"] = props.get("pairs", 0)
+                cable.save()
+
+                GeoJSONData.objects.create(
+                    name=props.get("name", "Unnamed"),
+                    type=props.get("type", "Unknown"),
+                    pairs=props.get("pairs",0),
+                    geometry=geometry,
+                    properties=props,
+                )
+            # Salvataggio dei file nel database
+            #for feature in geojson_data['features']:
+            #    GeoJSONData.objects.create(
+            #        name=feature['properties'].get("name", "Unnamed"),
+            #        type=feature['properties'].get("type", "Unknown"),
+            #        pairs=feature['properties'].get("pairs",0),
+            #        geometry=feature['geometry'],
+            #        properties=feature['properties'],
+            #    )
+
+            # Qui puoi salvare i dati in NetBox (ad esempio creando oggetti Custom)
+            messages.success(request, "File GeoJSON caricato con successo e dati salvati in Netbox!")
+            return render(request, self.template_name, {"file_uploaded": True})
+
+        except json.JSONDecodeError:
+            messages.error(request, "Errore nella lettura del file GeoJSON.")
+            return redirect("plugins:qgis-integration:upload")
+
+class GeoJSONMapView(View):
+    template_name = "qgis_integration_plugin/map.html"
+
+    def get(self,request):
+        # Otteniamo tutte le connessioni dal database
+        connections = GeoJSONData.objects.all()
+        return render(request, self.template_name, {'connections':connections})

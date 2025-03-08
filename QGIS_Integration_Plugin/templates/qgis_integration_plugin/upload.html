@@ -1,0 +1,29 @@
+{% extends 'base/layout.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Carica un file GeoJSON</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <label for="geojson_file">Scegli il file GeoJSON:</label>
+        <input type="file" name="geojson_file" accept=".geojson" required>
+        <button type="submit">Carica</button>
+    </form>
+
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if file_uploaded %}
+    <div class="map-link">
+        <p> Se vuoi vedere i dati nella mappa clicca qui:</p>
+        <a href="{% url 'QGIS_Integration_Plugin:map' %}">Visualizza la Mappa</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

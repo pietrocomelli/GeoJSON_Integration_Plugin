@@ -1,0 +1,74 @@
+{% extends 'base/layout.html' %}
+
+{% block content %}
+<div class="container">
+    <h2>Visualizza i Dati sulla Mappa</h2>
+    <div id="map" style="height: 400px;"></div>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mappa</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-geojson-hint/leaflet-geojson-hint.js"></script>
+    <script>
+        var map = L.map('map').setView([43.725210510938638, 12.637744131485954], 15);
+
+        // Usa un URL valido per i tile di OpenStreetMap
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        {% for connection in connections %}
+        var geometry = {{ connection.geometry|safe }};
+        var name = "{{ connection.name }}";
+        
+        if (geometry.type === "MultiLineString") {
+            var allLatLngs = [];
+
+            geometry.coordinates.forEach(function(line) {
+                var latlngs = line.map(function(coord) {
+                    return [coord[1], coord[0]];  // Inverti latitudine e longitudine per Leaflet
+                });
+                var polyline = L.polyline(latlngs, {color: 'blue'}).addTo(map);
+
+                // Popup per la tratta di fibra
+                polyline.on('mouseover', function() {
+                    this.bindPopup("Fibra: " + name).openPopup();
+                });
+                
+                polyline.on('mouseout', function() {
+                    this.closePopup();
+                });
+
+                allLatLngs = allLatLngs.concat(latlngs);  // Aggiungi tutti i punti alla lista per il bounding box
+
+                var startPoint = latlngs[0];
+                var endPoint = latlngs[latlngs.length - 1];
+
+                L.marker(startPoint).addTo(map).bindPopup("Endpoint Inizio: " + name);
+                L.marker(endPoint).addTo(map).bindPopup("Endpoint Fine: " + name);
+            });
+
+            // Zoom e centrare la mappa sui dati caricati
+            if (allLatLngs.length > 0) {
+                map.fitBounds(allLatLngs);
+            }
+        } else if (geometry.type === "Point") {
+            var latlng = [geometry.coordinates[1], geometry.coordinates[0]];  // Inverti latitudine e longitudine
+            L.marker(latlng).addTo(map).bindPopup("Punto: " + name);
+            map.setView(latlng, 13);  // Centra la mappa sul punto
+        } else if (geometry.type === "Polygon") {
+            var latlngs = geometry.coordinates[0].map(function(coord) {
+                return [coord[1], coord[0]];  // Inverti latitudine e longitudine
+            });
+            L.polygon(latlngs, {color: 'green'}).addTo(map).bindPopup("Poligono: " + name);
+
+            // Centra la mappa sui poligoni
+            map.fitBounds(latlngs);
+        }
+        {% endfor %}
+    </script>
+</div>
+{% endblock %}
+
