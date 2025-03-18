@@ -1,4 +1,5 @@
 from netbox.plugins import PluginConfig
+from .navigation import menu
 
 class QGISIntegrationPluginConfig(PluginConfig):
     name = "QGIS_Integration_Plugin"
@@ -9,9 +10,8 @@ class QGISIntegrationPluginConfig(PluginConfig):
     min_version = "3.5.0"
     required_settings = []
     default_settings = {}
-
+    #menu_items = (menu,)
     author = "Pietro Riccardo Comelli"
     author_email = "comelli.pietro@gmail.com"
 
 config = QGISIntegrationPluginConfig
-

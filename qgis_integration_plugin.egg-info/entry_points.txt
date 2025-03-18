@@ -1,2 +1,0 @@
-[netbox.plugins]
-qgis_integration_plugin = QGIS_Integration_Plugin.plugin

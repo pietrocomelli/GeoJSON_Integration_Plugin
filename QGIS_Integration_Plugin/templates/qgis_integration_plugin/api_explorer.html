@@ -1,0 +1,81 @@
+{% extends 'base/layout.html' %}
+
+{% block content %}
+<div class="container">
+    <div class="navbar">
+        <a href="{% url 'QGIS_Integration_Plugin:upload' %}" class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">Upload</a>
+        <a href="{% url 'QGIS_Integration_Plugin:map' %}" class="{% if request.resolver_match.url_name == 'map' %}active{% endif %}">Mappa</a>
+        <a href="{% url 'QGIS_Integration_Plugin:api_explorer' %}" class="{% if request.resolver_match.url_name == 'api_explorer' %}active{% endif %}">API Explorer</a>
+    </div>
+
+    <h2>Esplora API GeoJSON</h2>
+
+    {% if messages %}
+        <div class="alert alert-info">
+            {% for message in messages %}
+                <p>{{ message }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <th>Tipo</th>
+                <th>Descrizione</th>
+                <th>Pairs</th>
+                <th>Dispositivo Associato</th>
+                <th>Ciruito Associato</th>
+                <th>Data Creazione</th>
+                <th>Link API</th>
+                <th>Azioni</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for data in geojson_data %}
+            <tr>
+                <td>{{ data.name }}</td>
+                <td>{{ data.type }}</td>
+                <td>{{ data.description }}</td>
+                <td>{{ data.pairs }}</td>
+                <td>
+                    {% if data.related_device %}
+                        {{ data.related_device.name }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                <td>
+                    {% if data.related_circuit %}
+                        {{ data.related_circuit.name }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </td>
+                
+                <td>{{ data.created_at }}</td>
+
+                <td>
+                    <a href="{% url 'QGIS_Integration_Plugin:geojsondata-detail' pk=data.pk %}" target="_blank">GET</a>
+                </td>
+                <td>
+                    <form action="{% url 'QGIS_Integration_Plugin:delete' pk=data.pk %}" method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="btn btn-danger btn-sm">Elimina</button>
+                    </form>
+
+                    <form action="{% url 'QGIS_Integration_Plugin:edit' pk=data.pk %}" method="get" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-warning btn-sm">Modifica</button>
+                    </form>
+
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}

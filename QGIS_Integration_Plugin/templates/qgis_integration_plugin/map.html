@@ -2,73 +2,82 @@
 
 {% block content %}
 <div class="container">
+    <div class="navbar">
+        <a href="{% url 'QGIS_Integration_Plugin:upload' %}" class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">Upload</a>
+        <a href="{% url 'QGIS_Integration_Plugin:map' %}" class="{% if request.resolver_match.url_name == 'map' %}active{% endif %}">Mappa</a>
+        <a href="{% url 'QGIS_Integration_Plugin:api_explorer' %}" class="{% if request.resolver_match.url_name == 'api_explorer' %}active{% endif %}">API Explorer</a>
+    </div>
+
     <h2>Visualizza i Dati sulla Mappa</h2>
-    <div id="map" style="height: 400px;"></div>
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mappa</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-geojson-hint/leaflet-geojson-hint.js"></script>
-    <script>
-        var map = L.map('map').setView([43.725210510938638, 12.637744131485954], 15);
-
-        // Usa un URL valido per i tile di OpenStreetMap
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        }).addTo(map);
-
-        {% for connection in connections %}
-        var geometry = {{ connection.geometry|safe }};
-        var name = "{{ connection.name }}";
-        
-        if (geometry.type === "MultiLineString") {
-            var allLatLngs = [];
-
-            geometry.coordinates.forEach(function(line) {
-                var latlngs = line.map(function(coord) {
-                    return [coord[1], coord[0]];  // Inverti latitudine e longitudine per Leaflet
-                });
-                var polyline = L.polyline(latlngs, {color: 'blue'}).addTo(map);
-
-                // Popup per la tratta di fibra
-                polyline.on('mouseover', function() {
-                    this.bindPopup("Fibra: " + name).openPopup();
-                });
-                
-                polyline.on('mouseout', function() {
-                    this.closePopup();
-                });
-
-                allLatLngs = allLatLngs.concat(latlngs);  // Aggiungi tutti i punti alla lista per il bounding box
-
-                var startPoint = latlngs[0];
-                var endPoint = latlngs[latlngs.length - 1];
-
-                L.marker(startPoint).addTo(map).bindPopup("Endpoint Inizio: " + name);
-                L.marker(endPoint).addTo(map).bindPopup("Endpoint Fine: " + name);
-            });
-
-            // Zoom e centrare la mappa sui dati caricati
-            if (allLatLngs.length > 0) {
-                map.fitBounds(allLatLngs);
-            }
-        } else if (geometry.type === "Point") {
-            var latlng = [geometry.coordinates[1], geometry.coordinates[0]];  // Inverti latitudine e longitudine
-            L.marker(latlng).addTo(map).bindPopup("Punto: " + name);
-            map.setView(latlng, 13);  // Centra la mappa sul punto
-        } else if (geometry.type === "Polygon") {
-            var latlngs = geometry.coordinates[0].map(function(coord) {
-                return [coord[1], coord[0]];  // Inverti latitudine e longitudine
-            });
-            L.polygon(latlngs, {color: 'green'}).addTo(map).bindPopup("Poligono: " + name);
-
-            // Centra la mappa sui poligoni
-            map.fitBounds(latlngs);
-        }
-        {% endfor %}
-    </script>
+    <div id="map" style="height: 500px;"></div>
 </div>
-{% endblock %}
 
+<!-- Inclusione delle librerie Leaflet -->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+    // Inizializza la mappa centrata su un punto specifico
+    var map = L.map('map').setView([43.7252, 12.6377], 15);
+
+    // Aggiunge i tile OpenStreetMap alla mappa
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    {% for connection in connections %}
+    var geometry = {{ connection.geometry|safe }};
+    var name = "{{ connection.name }}";
+
+    if (geometry.type === "MultiLineString") {
+        var allLatLngs = [];
+
+        geometry.coordinates.forEach(function(line) {
+            var latlngs = line.map(function(coord) {
+                return [coord[1], coord[0]];  // Inverti latitudine e longitudine per Leaflet
+            });
+
+            var polyline = L.polyline(latlngs, {color: 'blue'}).addTo(map);
+            allLatLngs = allLatLngs.concat(latlngs);
+
+            // Aggiunge popup con il nome della connessione
+            polyline.on('mouseover', function() {
+                this.bindPopup("Fibra: " + name).openPopup();
+            });
+
+            polyline.on('mouseout', function() {
+                this.closePopup();
+            });
+
+            // Aggiunge marker per gli endpoint
+            var startPoint = latlngs[0];
+            var endPoint = latlngs[latlngs.length - 1];
+
+            L.marker(startPoint).addTo(map).bindPopup("Inizio: " + name);
+            L.marker(endPoint).addTo(map).bindPopup("Fine: " + name);
+        });
+
+        // Adatta la vista della mappa per includere tutti i punti
+        if (allLatLngs.length > 0) {
+            map.fitBounds(allLatLngs);
+        }
+
+    } else if (geometry.type === "Point") {
+        var latlng = [geometry.coordinates[1], geometry.coordinates[0]];
+        L.marker(latlng).addTo(map).bindPopup("Punto: " + name);
+        map.setView(latlng, 13);
+
+    } else if (geometry.type === "Polygon") {
+        var latlngs = geometry.coordinates[0].map(function(coord) {
+            return [coord[1], coord[0]];
+        });
+
+        L.polygon(latlngs, {color: 'green'}).addTo(map).bindPopup("Poligono: " + name);
+        map.fitBounds(latlngs);
+    }
+    {% endfor %}
+</script>
+
+{% endblock %}

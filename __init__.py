@@ -1,0 +1,3 @@
+from netbox.src.netbox.netbox.plugins.QGIS_Integration_Plugin.QGIS_Integration_Plugin.plugin_config import QGISIntegrationPluginConfig
+
+config = QGISIntegrationPluginConfig
