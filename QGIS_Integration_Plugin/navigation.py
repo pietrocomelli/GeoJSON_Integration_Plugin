@@ -1,25 +1,31 @@
-from netbox.plugins import PluginMenuItem, PluginMenu
+from netbox.plugins import PluginMenuButton, PluginMenuItem
+from extras.choices import ButtonColorChoices
 
+# Define a button for GeoJSON data actions
+geojsondata_buttons = [
+    PluginMenuButton(
+        link='plugins:QGIS_Integration_Plugin:upload',
+        title='Import',
+        icon_class='mdi mdi-plus-thick',
+        color=ButtonColorChoices.GREEN
+    )
+]
+
+# Define menu items with the respective buttons
 menu_items = (
     PluginMenuItem(
-        link='plugins:QGIS_Integration_Plugin:list',
-        link_text="Elenco GeoJSON",
+        link='plugins:QGIS_Integration_Plugin:upload',
+        link_text='GeoJSON Data Upload',
+        buttons=geojsondata_buttons
     ),
     PluginMenuItem(
-        link='plugins:QGIS_Integration_Plugin:upload',
-        link_text='Carica GeoJSON',
+        link='plugins:QGIS_Integration_Plugin:api_explorer',
+        link_text='API Explorer',
+        buttons=geojsondata_buttons
     ),
     PluginMenuItem(
         link='plugins:QGIS_Integration_Plugin:map',
-        link_text='Visualizza Mappa',
+        link_text='Map',
+        buttons=geojsondata_buttons
     ),
-    PluginMenuItem(
-        link='plugins:QGIS_Integration_Plugin:download',
-        link_text="Scarica GeoJSON",
-    ),
-)
-
-menu = PluginMenu(
-    label="QGIS Integration",
-    groups=(("Funzionalità", menu_items),),
 )

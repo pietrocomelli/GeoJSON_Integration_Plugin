@@ -1,23 +1,22 @@
-{% extends 'generic/object.html' %}
+{% extends 'base/layout.html' %}
 
 {% block content %}
 <div class="container">
-    <h2 class="mt-4 mb-4">Modifica Dati GeoJSON</h2>
+    <h2 class="mt-4 mb-4">Edit GeoJSON Data</h2>
 
     <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}  <!-- Mostra il modulo -->
-        <button type="submit" class="btn btn-primary">Salva modifiche</button>
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Save Changes</button>
     </form>
 
     <hr>
 
-    <h3>Dati attuali:</h3>
-    <p><strong>Nome:</strong> {{ geojson_data.name }}</p>
-    <p><strong>Tipo:</strong> {{ geojson_data.type }}</p>
-    <p><strong>Descrizione:</strong> {{ geojson_data.description }}</p>
+    <h3>Current Data:</h3>
+    <!-- Display current GeoJSON data fields -->
+    <p><strong>Name:</strong> {{ geojson_data.name }}</p>
+    <p><strong>Type:</strong> {{ geojson_data.type }}</p>
+    <p><strong>Description:</strong> {{ geojson_data.description }}</p>
     <p><strong>Pairs:</strong> {{ geojson_data.pairs }}</p>
-    <p><strong>Relazione dispositivo:</strong> {{ geojson_data.related_device }}</p>
-    <p><strong>Relazione circuito:</strong> {{ geojson_data.related_circuit }}</p>
 </div>
 {% endblock %}

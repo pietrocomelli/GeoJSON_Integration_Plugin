@@ -3,5 +3,6 @@ from ..models import GeoJSONData
 
 class GeoJSONDataSerializer(serializers.ModelSerializer):
     class Meta:
-        model = GeoJSONData
-        fields = '__all__'
+        # Specifies the model this serializer is for (GeoJSONData model)
+        model = GeoJSONData  
+        fields = '__all__'  # This includes every field of the GeoJSONData model

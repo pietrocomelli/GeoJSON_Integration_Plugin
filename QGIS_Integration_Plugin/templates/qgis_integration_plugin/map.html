@@ -2,27 +2,45 @@
 
 {% block content %}
 <div class="container">
-    <div class="navbar">
-        <a href="{% url 'QGIS_Integration_Plugin:upload' %}" class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">Upload</a>
-        <a href="{% url 'QGIS_Integration_Plugin:map' %}" class="{% if request.resolver_match.url_name == 'map' %}active{% endif %}">Mappa</a>
-        <a href="{% url 'QGIS_Integration_Plugin:api_explorer' %}" class="{% if request.resolver_match.url_name == 'api_explorer' %}active{% endif %}">API Explorer</a>
+    <div class="d-flex justify-content-between align-items-center">
+        <h2>Visualizza i Dati sulla Mappa</h2>
+        <a href="{% url 'QGIS_Integration_Plugin:api_explorer' %}" class="btn btn-info">
+            <i class="mdi mdi-api"></i> Esplora API
+        </a>
+    </div>
+    
+    <!-- Buttons to display either all data or only selected ones -->
+    <div class="btn-list d-print-none mt-4">
+        <div class="bulk-action-buttons">
+            <a href="{% url 'QGIS_Integration_Plugin:map' %}" class="btn btn-primary">
+                <i class="mdi mdi-map"></i> Visualizza Mappa
+            </a>
+
+            <form id="map-form" method="POST" action="{% url 'QGIS_Integration_Plugin:map' %}" style="display: inline;">
+                {% csrf_token %}
+                <input type="hidden" name="selected_rows" id="selected-rows">
+                <button type="submit" class="btn btn-success">
+                    <i class="mdi mdi-map"></i> Visualizza Mappa Selezionata
+                </button>
+            </form>
+        </div>
     </div>
 
-    <h2>Visualizza i Dati sulla Mappa</h2>
+    <!-- Map container -->
     <div id="map" style="height: 500px;"></div>
 </div>
 
-<!-- Inclusione delle librerie Leaflet -->
+<!-- Including Leaflet libraries for map display -->
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-    // Inizializza la mappa centrata su un punto specifico
+    // Initialize the map
     var map = L.map('map').setView([43.7252, 12.6377], 15);
 
-    // Aggiunge i tile OpenStreetMap alla mappa
+    // Tile layer for the map (OpenStreetMap)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
     }).addTo(map);
@@ -31,18 +49,19 @@
     var geometry = {{ connection.geometry|safe }};
     var name = "{{ connection.name }}";
 
+    // Handle different geometry types (MultiLineString, Point, Polygon)
     if (geometry.type === "MultiLineString") {
         var allLatLngs = [];
 
         geometry.coordinates.forEach(function(line) {
             var latlngs = line.map(function(coord) {
-                return [coord[1], coord[0]];  // Inverti latitudine e longitudine per Leaflet
+                return [coord[1], coord[0]];
             });
 
             var polyline = L.polyline(latlngs, {color: 'blue'}).addTo(map);
             allLatLngs = allLatLngs.concat(latlngs);
 
-            // Aggiunge popup con il nome della connessione
+            // Display popup on hover
             polyline.on('mouseover', function() {
                 this.bindPopup("Fibra: " + name).openPopup();
             });
@@ -51,7 +70,6 @@
                 this.closePopup();
             });
 
-            // Aggiunge marker per gli endpoint
             var startPoint = latlngs[0];
             var endPoint = latlngs[latlngs.length - 1];
 
@@ -59,7 +77,6 @@
             L.marker(endPoint).addTo(map).bindPopup("Fine: " + name);
         });
 
-        // Adatta la vista della mappa per includere tutti i punti
         if (allLatLngs.length > 0) {
             map.fitBounds(allLatLngs);
         }
@@ -78,6 +95,47 @@
         map.fitBounds(latlngs);
     }
     {% endfor %}
+</script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const selectAllCheckbox = document.querySelector(".toggle");
+        const rowCheckboxes = document.querySelectorAll(".row-checkbox");
+        const selectedRowsInput = document.getElementById("selected-rows");
+        const mapForm = document.getElementById("map-form");
+
+        // Select or deselect all checkboxes
+        selectAllCheckbox.addEventListener("change", function () {
+            rowCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        });
+
+        // Check if individual checkboxes are selected or not
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener("change", function () {
+                if (!this.checked) {
+                    selectAllCheckbox.checked = false;
+                } else if (Array.from(rowCheckboxes).every(cb => cb.checked)) {
+                    selectAllCheckbox.checked = true;
+                }
+            });
+        });
+
+        // Ensure at least one item is selected before submitting form
+        mapForm.addEventListener("submit", function (event) {
+            const selectedIds = Array.from(rowCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+
+            if (selectedIds.length === 0) {
+                event.preventDefault();
+                alert("Seleziona almeno un elemento per visualizzarlo sulla mappa.");
+            } else {
+                selectedRowsInput.value = selectedIds.join(",");
+            }
+        });
+    });
 </script>
 
 {% endblock %}

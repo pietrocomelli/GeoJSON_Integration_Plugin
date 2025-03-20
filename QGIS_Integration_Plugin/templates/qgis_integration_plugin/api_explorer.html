@@ -1,81 +1,167 @@
-{% extends 'base/layout.html' %}
+{% extends 'generic/_base.html' %}
 
 {% block content %}
 <div class="container">
-    <div class="navbar">
-        <a href="{% url 'QGIS_Integration_Plugin:upload' %}" class="{% if request.resolver_match.url_name == 'upload' %}active{% endif %}">Upload</a>
-        <a href="{% url 'QGIS_Integration_Plugin:map' %}" class="{% if request.resolver_match.url_name == 'map' %}active{% endif %}">Mappa</a>
-        <a href="{% url 'QGIS_Integration_Plugin:api_explorer' %}" class="{% if request.resolver_match.url_name == 'api_explorer' %}active{% endif %}">API Explorer</a>
-    </div>
-
-    <h2>Esplora API GeoJSON</h2>
-
-    {% if messages %}
-        <div class="alert alert-info">
-            {% for message in messages %}
-                <p>{{ message }}</p>
-            {% endfor %}
+    <div class="page-content">
+        <div class="page-header m-0">
+            <div class="container-fluid mt-2 d-print-none">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h1 class="page-title">Explore GeoJSON API</h1>
+                    </div>
+                    <div class="d-print-none">
+                        <div class="btn-list">
+                            <!-- Import GeoJSON Button -->
+                            <a href="{% url 'QGIS_Integration_Plugin:upload' %}" type="button" class="btn btn-cyan">
+                                <i class="mdi mdi-upload"></i>
+                                Import GeoJSON
+                            </a>
+                            <!-- Export GeoJSON Button -->
+                            <a href="{% url 'QGIS_Integration_Plugin:download' %}" type="button" class="btn btn-cyan">
+                                <i class="mdi mdi-download"></i>
+                                Export GeoJSON
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-    {% endif %}
 
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Nome</th>
-                <th>Tipo</th>
-                <th>Descrizione</th>
-                <th>Pairs</th>
-                <th>Dispositivo Associato</th>
-                <th>Ciruito Associato</th>
-                <th>Data Creazione</th>
-                <th>Link API</th>
-                <th>Azioni</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for data in geojson_data %}
-            <tr>
-                <td>{{ data.name }}</td>
-                <td>{{ data.type }}</td>
-                <td>{{ data.description }}</td>
-                <td>{{ data.pairs }}</td>
-                <td>
-                    {% if data.related_device %}
-                        {{ data.related_device.name }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </td>
-                <td>
-                    {% if data.related_circuit %}
-                        {{ data.related_circuit.name }}
-                    {% else %}
-                        N/A
-                    {% endif %}
-                </td>
+        {% if messages %}
+            <div class="alert alert-info">
+                {% for message in messages %}
+                    <p>{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <div class="page-body my-1">
+            <div class="container-fluid tab-content py-3">
+                <div class="card">
+                    <div class="htmx-container table-responsive">
+                        <!-- GeoJSON Data Table -->
+                        <table class="table table-striped">
+                            <thead hx-target="closest .htmx-container" hx-push-url="true">
+                                <tr>
+                                    <th class="w-1" aria-label="Select All">
+                                        <input type="checkbox" id="select-all" class="toggle form-check-input" title="Select All">
+                                    </th>
+                                    <th class="orderable">Name</th>
+                                    <th class="orderable">Type</th>
+                                    <th class="orderable">Description</th>
+                                    <th class="orderable">Comments</th>
+                                    <th class="orderable">Pairs</th>
+                                    <th>Last Updated</th>
+                                    <th>API Link</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            {% for data in geojson_data %}
+                                <tr>
+                                    <!-- Checkbox for selecting individual rows -->
+                                    <td>
+                                        <input type="checkbox" class="row-checkbox form-check-input" name="selected_rows" value="{{ data.pk }}">
+                                    </td>
+                                    <td>{{ data.name }}</td>
+                                    <td>{{ data.type }}</td>
+                                    <td>{{ data.description }}</td>
+                                    <td>{{ data.comments }}</td>
+                                    <td>{{ data.pairs }}</td>
+                                    <td>{{ data.last_updated }}</td>
+                                    <!-- API Link to view individual data -->
+                                    <td>
+                                        <a href="{% url 'QGIS_Integration_Plugin:geojsondata-detail' pk=data.pk %}" target="_blank">GET</a>
+                                    </td>
+                                    <td>
+                                        <!-- Edit Form -->
+                                        <form action="{% url 'QGIS_Integration_Plugin:edit_geojson_data' pk=data.pk %}" method="get" style="display:inline;">
+                                            <button type="submit" class="btn btn-warning btn-sm">Edit</button>
+                                        </form>
+                                        
+                                        <!-- Delete Form -->
+                                        <form action="{% url 'QGIS_Integration_Plugin:delete' pk=data.pk %}" method="post" style="display:inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="_method" value="DELETE">
+                                            <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                        </form>
+
+                                        <!-- Export Single GeoJSON Form -->
+                                        <form action="{% url 'QGIS_Integration_Plugin:download_single' pk=data.pk %}" method="get" style="display:inline;">
+                                            <button type="submit" class="btn btn-info btn-sm"><i class="mdi mdi-download"></i> Export</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
                 
-                <td>{{ data.created_at }}</td>
+                <!-- Bulk Action Buttons -->
+                <div class="btn-list d-print-none mt-4">
+                    <div class="bulk-action-buttons">
+                        <!-- Map View Button -->
+                        <a href="{% url 'QGIS_Integration_Plugin:map' %}" type="button" class="btn btn-yellow">
+                            <i class="mdi mdi-map"></i>
+                            View Map
+                        </a>
 
-                <td>
-                    <a href="{% url 'QGIS_Integration_Plugin:geojsondata-detail' pk=data.pk %}" target="_blank">GET</a>
-                </td>
-                <td>
-                    <form action="{% url 'QGIS_Integration_Plugin:delete' pk=data.pk %}" method="post" style="display:inline;">
-                        {% csrf_token %}
-                        <input type="hidden" name="_method" value="DELETE">
-                        <button type="submit" class="btn btn-danger btn-sm">Elimina</button>
-                    </form>
-
-                    <form action="{% url 'QGIS_Integration_Plugin:edit' pk=data.pk %}" method="get" style="display:inline;">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-warning btn-sm">Modifica</button>
-                    </form>
-
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+                        <!-- Submit Selected Rows for Map View -->
+                        <form id="map-form" method="POST" action="{% url 'QGIS_Integration_Plugin:map' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="selected_rows" id="selected-rows">
+                            <button type="submit" class="btn btn-yellow">
+                                <i class="mdi mdi-map"></i>
+                                View Selected Map
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const selectAllCheckbox = document.querySelector(".toggle");
+        const rowCheckboxes = document.querySelectorAll(".row-checkbox");
+        const selectedRowsInput = document.getElementById("selected-rows");
+        const mapForm = document.getElementById("map-form");
+
+        // Select all rows functionality
+        selectAllCheckbox.addEventListener("change", function () {
+            rowCheckboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        });
+
+        // Update "select all" checkbox based on individual selections
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener("change", function () {
+                if (!this.checked) {
+                    selectAllCheckbox.checked = false;
+                } else if (Array.from(rowCheckboxes).every(cb => cb.checked)) {
+                    selectAllCheckbox.checked = true;
+                }
+            });
+        });
+
+        // Submit only selected rows when the "View Selected Map" button is clicked
+        mapForm.addEventListener("submit", function (event) {
+            const selectedIds = Array.from(rowCheckboxes)
+                .filter(checkbox => checkbox.checked)
+                .map(checkbox => checkbox.value);
+
+            if (selectedIds.length === 0) {
+                event.preventDefault();  // Prevent form submission if no rows are selected
+                alert("Select at least one item to view it on the map.");
+            } else {
+                selectedRowsInput.value = selectedIds.join(",");
+            }
+        });
+    });
+</script>
 
 {% endblock %}
