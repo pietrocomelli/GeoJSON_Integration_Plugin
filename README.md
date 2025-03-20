@@ -7,7 +7,7 @@ The QGIS Integration Plugin allows users to integrate QGIS functionalities with 
 To install the QGIS Integration Plugin, follow these steps:
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/QGIS_Integration_Plugin.git
+   git clone https://github.com/pietrocomelli/netbox-plugin.git
    ```
 2. Navigate to the plugin directory:
    ```bash
@@ -30,5 +30,3 @@ Contributions are welcome! Please follow these steps to contribute:
 2. Create a new branch for your feature or bug fix.
 3. Submit a pull request with a clear description of your changes.
 
-## License
-This project is licensed under the MIT License. See the LICENSE file for more details.
