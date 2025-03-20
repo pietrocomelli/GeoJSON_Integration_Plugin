@@ -7,7 +7,7 @@ The QGIS Integration Plugin allows users to integrate QGIS functionalities with 
 To install the QGIS Integration Plugin, follow these steps:
 1. Clone the repository:
    ```bash
-   git clone https://github.com/pietrocomelli/netbox-plugin.git
+   git clone https://github.com/pietrocomelli/GeoJSON_Integration_Plugin.git
    ```
 2. Navigate to the plugin directory:
    ```bash
