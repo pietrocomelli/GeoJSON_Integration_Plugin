@@ -23,10 +23,13 @@ To use the QGIS Integration Plugin, follow these steps:
 1. Activate the plugin in your NetBox instance.
 2. Access the plugin features through the NetBox interface.
 3. Refer to the documentation for specific functionalities and examples.
+4. Add the plugin to your `configuration.py` file:
+   ```python
+   PLUGINS = ['QGIS_Integration_Plugin']
+   ```
 
 ## Contributing
 Contributions are welcome! Please follow these steps to contribute:
 1. Fork the repository.
 2. Create a new branch for your feature or bug fix.
 3. Submit a pull request with a clear description of your changes.
-
